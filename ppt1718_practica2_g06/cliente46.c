@@ -111,7 +111,9 @@ int main(int *argc, char *argv[])
 				do{
 					switch(estado){
 					case S_HELO:
-						// Se recibe el mensaje de bienvenida
+						sprintf(input, "HELO\r\n");
+						send(sockfd, input, strlen(input), 0);
+						recv(sockfd, input, sizeof(input), 0);
 						break;
 					case S_USER:
 						// establece la conexion de aplicacion 

@@ -3,6 +3,7 @@
 #endif
 
 // COMANDOS DE APLICACION
+#define CONNECT "CONNECT"
 #define HELO "HELO"
 
 #define QUIT  "QUIT"  // Finalizacion de la conexion de aplicacion
@@ -18,7 +19,7 @@
 
 //ESTADOS
 #define S_HELO 0
-#define S_USER 1
+#define S_MAIL 1
 #define S_PASS 2
 #define S_DATA 3
 #define S_QUIT 4

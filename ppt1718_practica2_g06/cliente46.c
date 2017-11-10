@@ -27,7 +27,7 @@ int main(int *argc, char *argv[])
 	struct sockaddr_in server_in4;
 	struct sockaddr_in6 server_in6;
 	int address_size = sizeof(server_in4);
-	char buffer_in[1024], buffer_out[1024],input[1024];
+	char buffer_in[1024], buffer_out[1024],input[1024],remit[1024],dest[1024];
 	int recibidos=0,enviados=0;
 	int estado=S_HELO;
 	char option;
@@ -111,41 +111,57 @@ int main(int *argc, char *argv[])
 				do{
 					switch(estado){
 					case S_HELO:
-						sprintf(input, "HELO\r\n");
+						sprintf_s(input,7,"HELO\r\n");
 						send(sockfd, input, strlen(input), 0);
 						recv(sockfd, input, sizeof(input), 0);
+						estado = S_MAIL;
 						break;
-					case S_USER:
-						// establece la conexion de aplicacion 
-						printf("CLIENTE> Introduzca su host (enter para salir): ");
+					case S_MAIL:
+						// ENVIO
+						printf("CLIENTE> Introduce tu correo: ");
+						gets_s(input,sizeof(input));
+						if (strlen(input) == 0) {
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", HELO, CRLF);
+							estado = S_MAIL;
+						}
+						else {
+							send(sockfd, input, strlen(input), 0);
+							strcpy_s(remit, 1024, input);
+							recv(sockfd, input, sizeof(input), 0);
+						}
+
+						printf("CLIENTE> Introduce el correo destinatario: ");
+						gets_s(input, sizeof(input));
+						if (strlen(input) == 0) {
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", HELO, CRLF);
+							estado = S_MAIL;
+						}
+						else
+							send(sockfd, input, strlen(input), 0);
+							strcpy_s(dest, 1024, input);
+							recv(sockfd, input, sizeof(input), 0);
+							estado = S_QUIT;
+						//sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",QUIT,input,CRLF);
+						break;
+					case S_PASS:
+						printf("CLIENTE> Introduzca la clave (enter para salir): ");
 						gets_s(input,sizeof(input));
 						if(strlen(input)==0){
 							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",HELO,CRLF);
 							estado=S_QUIT;
 						}
 						else
-
-						sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",SC,input,CRLF);
-						break;
-					case S_PASS:
-						printf("CLIENTE> Introduzca la clave (enter para salir): ");
-						gets_s(input,sizeof(input));
-						if(strlen(input)==0){
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",SD,CRLF);
-							estado=S_QUIT;
-						}
-						else
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",PW,input,CRLF);
+							sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",HELO,input,CRLF);
 						break;
 					case S_DATA:
 						printf("CLIENTE> Introduzca datos (enter o QUIT para salir): ");
 						gets_s(input, sizeof(input));
 						if(strlen(input)==0){
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",SD,CRLF);
+							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",HELO,CRLF);
 							estado=S_QUIT;
 						}
 						else
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",ECHO,input,CRLF);
+							sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",HELO,input,CRLF);
 						break;
 				
 					}

@@ -22,6 +22,7 @@
     <ClCompile Include="cliente46.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cliente46.h" />
     <ClInclude Include="protocol.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

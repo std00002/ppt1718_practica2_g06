@@ -13,10 +13,12 @@ Descripción:
 Autor: Juan Carlos Cuevas Martínez
 
 *******************************************************/
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <stdio.h>
 #include <ws2tcpip.h>//Necesaria para las funciones IPv6
 #include <conio.h>
 #include "protocol.h"
+
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -26,8 +28,9 @@ int main(int *argc, char *argv[])
 	struct sockaddr *server_in;
 	struct sockaddr_in server_in4;
 	struct sockaddr_in6 server_in6;
+	int ipdestl=0;
 	int address_size = sizeof(server_in4);
-	char buffer_in[1024], buffer_out[1024],input[1024],remit[50],dest[50];
+	char buffer_in[1024], buffer_out[1024],input[1024],remit[50],dest[50],asunto[50]="",fecha[1024]="",mensaje[1024]="",entrada[1024]=".";
 	int recibidos=0,enviados=0;
 	int estado=S_HELO;
 	char option;
@@ -39,7 +42,6 @@ int main(int *argc, char *argv[])
 	WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
-   
 	//Inicialización Windows sockets - SOLO WINDOWS
 	wVersionRequested=MAKEWORD(1,1);
 	err=WSAStartup(wVersionRequested,&wsaData);
@@ -74,6 +76,23 @@ int main(int *argc, char *argv[])
 			exit(-1);
 		}
 		else{
+			
+			/*struct in_addr address;
+
+				printf("Introduzcala direccion IP o el dominio destino: ");
+			gets(ipdest);
+			ipdestl = inet_addr(ipdest);
+			if (ipdestl == INADDR_NONE) {
+				//La dirección introducida por teclado no es correcta o
+				//corresponde con un dominio.
+				struct hostent*host;
+				host = gethostbyname(ipdest);
+				if (host != NULL) {
+					memcpy(&address, host->h_addr_list[0], 4);
+					printf("\nDireccion%s\n", inet_ntoa(address));
+				}
+			}
+			*/
 			printf("CLIENTE> Introduzca la IP destino (pulsar enter para IP por defecto): ");
 			gets_s(ipdest,sizeof(ipdest));
 
@@ -106,65 +125,68 @@ int main(int *argc, char *argv[])
 
 			if(connect(sockfd, server_in, address_size)==0){
 				printf("CLIENTE> CONEXION ESTABLECIDA CON %s:%d\r\n",ipdest,TCP_SERVICE_PORT);
-			
+				//Recibo
+				recibidos = recv(sockfd, buffer_in, 512, 0);
+				buffer_in[recibidos] = 0x00;
+				printf(buffer_in);
 				//Inicio de la máquina de estados
 				do{
 					switch(estado){
-					case S_HELO:
-						sprintf_s(input,7,"HELO\r\n");
-						send(sockfd, input, strlen(input), 0);
-						recv(sockfd, input, sizeof(input), 0);
-						estado = S_MAIL;
+					case S_RSET:
+						sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", RS, CRLF);
+						system("cls");
+						estado = S_HELO;
 						break;
-					case S_MAIL:
+					
+					case S_HELO:
+						sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", HELO, CRLF);
+						break;
+					case S_MAIL_RT:
 						// ENVIO
 						printf("CLIENTE> Introduce tu correo: ");
 						gets_s(input,sizeof(input));
 						if (strlen(input) == 0) {
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
-							estado = S_MAIL;
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", SD, CRLF);
 						}
-						else {
-							send(sockfd, input, strlen(input), 0);
-							strcpy_s(remit, 50, input);
-							recv(sockfd, input, sizeof(input), 0);
-						}
-
+						else 
+							//send(sockfd, input, strlen(input), 0);
+							strcpy_s(remit, sizeof(remit), input);
+							//recv(sockfd, input, sizeof(input), 0);
+							sprintf_s(buffer_out, sizeof(buffer_out), "MAIL FROM:<%s>%s",remit, CRLF);
+							
+							break;
+					case S_MAIL_DT:
 						printf("CLIENTE> Introduce el correo destinatario: ");
 						gets_s(input, sizeof(input));
 						if (strlen(input) == 0) {
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", HELO, CRLF);
-							estado = S_MAIL;
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", SD, CRLF);
+							
 						}
 						else
-							send(sockfd, input, strlen(input), 0);
-							strcpy_s(dest, 50, input);
-							recv(sockfd, input, sizeof(input), 0);
-							estado = S_DATA;
-						//sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",QUIT,input,CRLF);
+							//send(sockfd, input, strlen(input), 0);
+							strcpy_s(dest, sizeof(dest), input);
+							//recv(sockfd, input, sizeof(input), 0);
+							sprintf_s(buffer_out, sizeof(buffer_out), "RCPT TO:<%s>%s",dest, CRLF);
+							
+						//sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",DEST,CRLF);
 						break;
 
 					case S_DATA:
-						printf("CLIENTE> Introduzca datos (enter o QUIT para salir): ");
-						gets_s(input, sizeof(input));
-						if(strlen(input)==0){
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",QUIT,CRLF);
-							estado=S_QUIT;
-						}
-						else
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s %s%s",HELO,input,CRLF);
+						sprintf_s(buffer_out, sizeof(buffer_out), "DATA%s", CRLF);
+						estado = S_QUIT;
 						break;
 				
 					}
 
-					if(estado!=S_HELO){
-						enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
-						if(enviados==SOCKET_ERROR){
-							 estado=S_QUIT;
-							 continue;
-						}
+
+					enviados = send(sockfd, buffer_out, (int)strlen(buffer_out), 0);
+					if (enviados<0) {
+						DWORD error = GetLastError();
+
+						printf("Error %d en el envio de datos%s", error, CRLF);
+						break;
 					}
-						
+
 					recibidos=recv(sockfd,buffer_in,512,0);
 					if(recibidos<=0){
 						DWORD error=GetLastError();
@@ -176,11 +198,17 @@ int main(int *argc, char *argv[])
 							printf("CLIENTE> Conexión con el servidor cerrada\r\n");
 							estado=S_QUIT;
 						}
-					}else{
+					}else
+
 						buffer_in[recibidos]=0x00;
 						printf(buffer_in);
-						if(estado!=S_DATA && strncmp(buffer_in,OK,2)==0) 
-							estado++;  
+
+
+					
+
+					//Avance de estado
+					if (strncmp(buffer_in, "2", 1) == 0 || strncmp(buffer_in, "3", 1) == 0) {
+						estado++;
 					}
 
 				}while(estado!=S_QUIT);		

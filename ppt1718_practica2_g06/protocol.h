@@ -22,8 +22,9 @@
 #define S_MAIL_RT 1
 #define S_MAIL_DT 2
 #define S_DATA 3
-#define S_QUIT 4
-#define S_ERROR 5
+#define S_MENSAJE 4
+#define S_QUIT 5
+#define S_ERROR 6
 //PUERTO DEL SERVICIO
 #define TCP_SERVICE_PORT	25
 

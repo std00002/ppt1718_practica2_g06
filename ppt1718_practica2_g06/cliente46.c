@@ -11,7 +11,7 @@ Descripción:
 	Cliente sencillo TCP.
 
 Autor: Juan Carlos Cuevas Martínez
-
+Alumnos Salvador Trujillo Diaz y Salvador Leon Ortega
 *******************************************************/
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <stdio.h>
@@ -59,7 +59,7 @@ int main(int *argc, char *argv[])
 
 	do{
 
-		printf("CLIENTE> ¿Qué versión de IP desea usar? 6 para IPv6, 4 para IPv4 [por defecto] ");
+		printf("CLIENTE> ¿Que version de IP desea usar? 6 para IPv6, 4 para IPv4 [por defecto] ");
 		gets_s(ipdest, sizeof(ipdest));
 
 		if (strcmp(ipdest, "6") == 0) {
@@ -77,10 +77,10 @@ int main(int *argc, char *argv[])
 		}
 		else{
 			
-			/*struct in_addr address;
+			struct in_addr address;
 
 				printf("Introduzcala direccion IP o el dominio destino: ");
-			gets(ipdest);
+			gets_s(ipdest,sizeof(ipdest));
 			ipdestl = inet_addr(ipdest);
 			if (ipdestl == INADDR_NONE) {
 				//La dirección introducida por teclado no es correcta o
@@ -90,11 +90,14 @@ int main(int *argc, char *argv[])
 				if (host != NULL) {
 					memcpy(&address, host->h_addr_list[0], 4);
 					printf("\nDireccion%s\n", inet_ntoa(address));
+
 				}
+
+				strcpy_s(ipdest, sizeof(ipdest),inet_ntoa(address));
 			}
-			*/
-			printf("CLIENTE> Introduzca la IP destino (pulsar enter para IP por defecto): ");
-			gets_s(ipdest,sizeof(ipdest));
+			
+			//printf("CLIENTE> Introduzca la IP destino (pulsar enter para IP por defecto): ");
+			//gets_s(ipdest,sizeof(ipdest));
 
 			//Dirección por defecto según la familia
 			if(strcmp(ipdest,"")==0 && ipversion==AF_INET)
@@ -163,7 +166,6 @@ int main(int *argc, char *argv[])
 							
 						}
 						else
-							//send(sockfd, input, strlen(input), 0);
 							strcpy_s(dest, sizeof(dest), input);
 							//recv(sockfd, input, sizeof(input), 0);
 							sprintf_s(buffer_out, sizeof(buffer_out), "RCPT TO:<%s>%s",dest, CRLF);
@@ -173,11 +175,38 @@ int main(int *argc, char *argv[])
 
 					case S_DATA:
 						sprintf_s(buffer_out, sizeof(buffer_out), "DATA%s", CRLF);
-						estado = S_QUIT;
+						
 						break;
 				
-					}
+					
 
+					case S_MENSAJE:
+
+					//Asunto
+					printf("\nAsunto: ");
+					gets(asunto);
+
+					time_t t;
+					struct tm *tm;
+					char fechayhora[100];
+
+					t = time(NULL);
+					tm = localtime(&t);
+					strftime(fechayhora, 100, "%d/%m/%Y a las %H:%M", tm);
+					
+					strcpy_s(fecha,sizeof(fecha),fechayhora);
+					
+					//Cabeceras  del mensaje
+					sprintf_s(mensaje, sizeof(mensaje), "Date: %s%sFrom: %s%sTo: %s%sSubject: %s%s", fecha, CRLF, remit, CRLF, dest, CRLF, asunto, CRLF);
+					printf("\nMENSAJE: (escribe un '.' para finalizar)\r\n");
+					do {
+						gets(entrada);
+						sprintf_s(mensaje, sizeof(mensaje), "%s%s%s", mensaje, CRLF, entrada);
+					} while (strncmp(entrada, ".", 1) != 0);
+					sprintf_s(buffer_out, sizeof(mensaje), "%s%s", mensaje, CRLF);
+					break;
+
+					}
 
 					enviados = send(sockfd, buffer_out, (int)strlen(buffer_out), 0);
 					if (enviados<0) {
@@ -200,16 +229,36 @@ int main(int *argc, char *argv[])
 						}
 					}else
 
-						buffer_in[recibidos]=0x00;
-						printf(buffer_in);
-
+						if (estado==S_HELO || estado==S_MAIL_DT || estado==S_MAIL_RT) {
+							buffer_in[recibidos] = 0x00;
+							printf(buffer_in);
+						}
 
 					
+					if (strncmp(buffer_in, "554", 3) == 0) {
+						printf("Destinatario incorrecto,intentelo de nuevo \r\n");
+					}
+					
+					if (estado == S_MENSAJE && strncmp(buffer_in, "250", 3) == 0) {
+						char opcion="";
 
+						printf("Mensaje enviado correctamente \r\n");
+						printf("¿Desea enviar otro mensaje? S/N \r\n");
+						opcion = _getche();
+						if (opcion == 'S' || opcion == 's') {
+							estado = S_RSET;
+						}
+						else { estado = S_QUIT; }
+					
+					}
+					
 					//Avance de estado
 					if (strncmp(buffer_in, "2", 1) == 0 || strncmp(buffer_in, "3", 1) == 0) {
 						estado++;
 					}
+
+
+
 
 				}while(estado!=S_QUIT);		
 			}

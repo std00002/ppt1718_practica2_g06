@@ -3,7 +3,6 @@
 #endif
 
 // COMANDOS DE APLICACION
-#define CONNECT "CONNECT"
 #define HELO "HELO"
 #define SD  "QUIT"  // Finalizacion de la conexion de aplicacion
 #define RS "RESET"
@@ -27,7 +26,3 @@
 #define S_ERROR 6
 //PUERTO DEL SERVICIO
 #define TCP_SERVICE_PORT	25
-
-// NOMBRE Y PASSWORD AUTORIZADOS
-#define USER		"alumno"
-#define PASSWORD	"123456"

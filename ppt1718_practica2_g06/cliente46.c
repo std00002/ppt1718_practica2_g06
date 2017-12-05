@@ -174,6 +174,7 @@ int main(int *argc, char *argv[])
 						}
 						else if (strncmp(input, "RSET", 4) == 0) {
 							estado = S_RSET;
+							break;
 						}
 						else {
 							strcpy_s(dest, sizeof(dest), input);
@@ -224,7 +225,7 @@ int main(int *argc, char *argv[])
 					do {
 						gets(entrada);
 						sprintf_s(mensaje, sizeof(mensaje), "%s%s%s", mensaje, CRLF, entrada);
-					} while (strncmp(entrada, ".", 1) != 0);
+					} while (strcmp(entrada, ".") != 0);
 					sprintf_s(buffer_out, sizeof(mensaje), "%s%s", mensaje, CRLF);
 					break;
 

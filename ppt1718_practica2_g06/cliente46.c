@@ -136,16 +136,16 @@ int main(int *argc, char *argv[])
 				//Inicio de la máquina de estados
 				do{
 					switch(estado){
-					case S_RSET:
-						sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", RS, CRLF);
-						system("cls");
-						estado = S_HELO;
-						break;
+					
+				
+			
 					
 					case S_HELO:
 						sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", HELO, CRLF);
 						estado++;
 						break;
+					case S_RSET:
+						estado = S_MAIL_DT;
 					case S_MAIL_RT:
 						// ENVIO
 						printf("CLIENTE> Introduce tu correo (para salir INTRO para resetear escribe RSET): ");
@@ -155,6 +155,7 @@ int main(int *argc, char *argv[])
 							estado = S_QUIT;
 						}
 						else if (strncmp(input, "RSET", 4) == 0) {
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", "RSET", CRLF);
 							estado = S_RSET;
 						}
 						else {
@@ -162,7 +163,7 @@ int main(int *argc, char *argv[])
 							strcpy_s(remit, sizeof(remit), input);
 							//recv(sockfd, input, sizeof(input), 0);
 							sprintf_s(buffer_out, sizeof(buffer_out), "MAIL FROM:<%s>%s", remit, CRLF);
-							estado++;
+							//estado++;//ESTO NO VA AQUÍ
 						}
 							break;
 					case S_MAIL_DT:
@@ -174,12 +175,13 @@ int main(int *argc, char *argv[])
 						}
 						else if (strncmp(input, "RSET", 4) == 0) {
 							estado = S_RSET;
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", "RSET", CRLF);
 							break;
 						}
 						else {
 							strcpy_s(dest, sizeof(dest), input);
 							//recv(sockfd, input, sizeof(input), 0);
-							sprintf_s(buffer_out, sizeof(buffer_out), "RCPT TO:<%s>%s", dest, CRLF);
+							sprintf_s(buffer_out, sizeof(buffer_out), "RCPT TO:%s%s", dest, CRLF);
 						}
 						printf("¿Quieres introducir otro destinatario S/N?\r\n");
 						char opcion = "";
@@ -250,43 +252,54 @@ int main(int *argc, char *argv[])
 							printf("CLIENTE> Conexión con el servidor cerrada\r\n");
 							estado=S_QUIT;
 						}
-					}else
-
-						if (estado==S_HELO || estado==S_MAIL_DT || estado==S_MAIL_RT) {
-							buffer_in[recibidos] = 0x00;
-							printf(buffer_in);
-						}
-
-					if (strncmp(buffer_in, "250 R", 5) == 0) {//usuario existe,copiar en lista rcpt to:
-						if (strcmp(dests, "") != 0) {
-							strcat(dests, ",");
-							strcat(dests, dest);
-						}
-						if (strcmp(dests, "") == 0) {
-							strcpy_s(dests, sizeof(dests), dest);
-						}
-					
 					}
+					else {
+						buffer_in[recibidos] = 0x00;
+						printf(buffer_in);
+						switch (estado) {
 
-					if (strncmp(buffer_in, "554", 3) == 0) {
-						printf("Destinatario incorrecto,intentelo de nuevo \r\n");
-						estado = S_MAIL_DT;
-					}
-					
-					if (estado == S_MENSAJE && strncmp(buffer_in, "250", 3) == 0) {
-						char opcion="";
+						case  S_MAIL_RT:
+							if (strncmp(buffer_in, "250", 3) == 0) {//usuario existe,copiar en lista rcpt to:
+								estado++;
+							}
+							break;
+						case S_MAIL_DT:
 
-						printf("Mensaje enviado correctamente \r\n");
-						printf("¿Desea enviar otro mensaje? S/N \r\n");
-						opcion = _getche();
-						if (opcion == 'S' || opcion == 's') {
-							estado = S_RSET;
+							if (strncmp(buffer_in, "250", 3) == 0) {//usuario existe,copiar en lista rcpt to:
+								if (strcmp(dests, "") != 0) {
+									strcat(dests, ",");
+									strcat(dests, dest);
+								}
+								if (strcmp(dests, "") == 0) {
+									strcpy_s(dests, sizeof(dests), dest);
+								}
+
+							}
+
+							if (strncmp(buffer_in, "554", 3) == 0) {
+								printf("Destinatario incorrecto,intentelo de nuevo \r\n");
+								estado = S_MAIL_RT;
+							}
+							break;
+						case S_DATA:
+							break;
+						case S_MENSAJE:
+							if (strncmp(buffer_in, "250", 3) == 0) {
+								char opcion = "";
+
+								printf("Mensaje enviado correctamente \r\n");
+								printf("¿Desea enviar otro mensaje? S/N \r\n");
+								opcion = _getche();
+								if (opcion == 'S' || opcion == 's') {
+									estado = S_RSET;
+								}
+								else { estado = S_QUIT; }
+
+							}
+							break;
 						}
-						else { estado = S_QUIT; }
-					
-					}
-				
 
+					}
 
 
 
